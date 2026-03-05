@@ -1,0 +1,66 @@
+name: Test LiteLLM + OpenAI
+on: [workflow_dispatch]  # 支持手动触发，避免每次推送都运行
+
+jobs:
+  test-litellm:
+    runs-on: ubuntu-latest
+    steps:
+      # 步骤1：检出代码（可选，测试LiteLLM调用不需要代码）
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤2：安装Python和依赖（锁定稳定版本）
+      - name: Install Python & LiteLLM
+        run: |
+          # 更新软件源
+          sudo apt-get update
+          # 安装Python3和pip
+          sudo apt-get install -y python3 python3-pip
+          # 安装稳定版LiteLLM和OpenAI SDK（避免版本兼容问题）
+          pip install litellm==1.63.8 openai==1.3.8
+
+      # 步骤3：创建并运行LiteLLM测试脚本
+      - name: Run LiteLLM Test Script
+        run: |
+          # 创建测试脚本文件
+          cat > test_litellm.py << 'EOF'
+          import litellm
+          import os
+          import sys
+
+          # 1. 检查环境变量是否读取到API Key
+          api_key = os.getenv("OPENAI_API_KEY")
+          if not api_key:
+              print("❌ 错误：未读取到OPENAI_API_KEY环境变量")
+              sys.exit(1)
+          print("✅ 成功读取OPENAI_API_KEY（前8位：{}）".format(api_key[:8]))
+
+          # 2. 配置LiteLLM
+          litellm.api_key = api_key
+          # 可选：设置调试模式，输出更多日志
+          litellm.set_verbose(True)
+
+          # 3. 测试最简调用
+          try:
+              print("🔍 开始测试LiteLLM调用OpenAI API...")
+              response = litellm.completion(
+                  model="gpt-3.5-turbo",  # 选免费额度可用的模型，避免配额问题
+                  messages=[{"role": "user", "content": "请回复一个字：好"}],
+                  max_tokens=10,  # 减少token消耗
+                  temperature=0
+              )
+              # 输出成功结果
+              print("✅ LiteLLM调用成功！")
+              print("📝 响应内容：", response.choices[0].message.content)
+          except Exception as e:
+              print("❌ LiteLLM调用失败，错误详情：")
+              print("错误类型：", type(e).__name__)
+              print("错误信息：", str(e))
+              sys.exit(1)
+          EOF
+
+          # 执行测试脚本
+          python3 test_litellm.py
+        # 关键：传递GitHub Secrets中的API Key到环境变量
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

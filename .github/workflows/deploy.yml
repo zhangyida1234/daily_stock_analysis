@@ -1,0 +1,30 @@
+name: Test OpenAI Network  # 工作流名称，随便起
+on: [push]  # 触发条件：推送代码时执行（也可以改成 workflow_dispatch，手动触发）
+
+jobs:
+  test-network:
+    runs-on: ubuntu-latest  # 使用 Ubuntu 环境（和你部署的环境保持一致）
+    steps:
+      # 步骤1：检出代码（如果只是测试网络，这一步可以省略）
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤2：安装网络测试工具（curl 和 netcat）
+      - name: Install network tools
+        run: |
+          sudo apt-get update  # 更新软件源
+          sudo apt-get install -y curl netcat  # 安装 curl（测试http）和 netcat（测试端口）
+
+      # 步骤3：测试访问 OpenAI API 域名
+      - name: Test OpenAI API connectivity (curl)
+        run: |
+          echo "===== 测试访问 OpenAI API 端点 ====="
+          curl -v https://api.openai.com/v1/models  # 关键命令：测试访问 OpenAI 模型列表接口
+          echo "===== curl 测试结束 ====="
+
+      # 步骤4：测试 OpenAI API 端口连通性（443 是 HTTPS 端口）
+      - name: Test OpenAI port (443)
+        run: |
+          echo "===== 测试 OpenAI 443 端口 ====="
+          nc -zv api.openai.com 443  # 关键命令：测试 TCP 端口是否能连接
+          echo "===== 端口测试结束 ====="

@@ -1,0 +1,40 @@
+name: Test LiteLLM
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        run: sudo apt-get install -y python3 python3-pip
+
+      - name: Install litellm
+        run: pip install litellm
+
+      - name: Run test
+        run: |
+          cat > test.py << 'EOF'
+          import os
+          import litellm
+
+          key = os.getenv("OPENAI_API_KEY")
+          print("KEY 前8位:", key[:8] if key else "没读到")
+
+          litellm.api_key = key
+
+          try:
+              res = litellm.completion(
+                  model="gpt-3.5-turbo",
+                  messages=[{"role":"user","content":"hello"}]
+              )
+              print("成功:", res.choices[0].message.content)
+          except Exception as e:
+              print("失败原因:", e)
+          EOF
+          python3 test.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

@@ -1,0 +1,30 @@
+name: Test OpenAI Network
+on: [push, workflow_dispatch]  # 支持手动触发
+
+jobs:
+  test-network:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 修正：安装正确的 netcat 版本 + curl
+      - name: Install network tools
+        run: |
+          sudo apt-get update
+          # 安装 netcat-openbsd（替代原 netcat） + curl
+          sudo apt-get install -y curl netcat-openbsd
+
+      # 测试 OpenAI API 连通性（保留详细日志）
+      - name: Test OpenAI API connectivity (curl)
+        run: |
+          echo "===== 测试访问 OpenAI API 端点 ====="
+          curl -v https://api.openai.com/v1/models || true
+          echo "===== curl 测试结束 ====="
+
+      # 测试 443 端口（用 nc 命令，已正确安装）
+      - name: Test OpenAI port (443)
+        run: |
+          echo "===== 测试 OpenAI 443 端口 ====="
+          nc -zv api.openai.com 443 || true
+          echo "===== 端口测试结束 ====="
